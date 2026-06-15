@@ -1,0 +1,46 @@
+# AXIOM Model Assignments
+# Updated automatically by benchmark engine (Phase 3)
+
+ollama_base_url: "http://localhost:11434"
+
+task_models:
+  email_draft:
+    primary: "qwen3.6:27b"
+    fallback: "granite4.1:30b"
+    thinking_mode: false
+
+  meeting_summary:
+    primary: "granite4.1:30b"
+    fallback: "qwen3.6:27b"
+    thinking_mode: false
+
+  rfp_analysis:
+    primary: "qwen3:30b"
+    fallback: "deepseek-r1:32b"
+    thinking_mode: true
+
+  pki_qa:
+    primary: "qwen3.6:27b"
+    fallback: "granite4.1:30b"
+    thinking_mode: false
+
+  research:
+    primary: "deepseek-r1:32b"
+    fallback: "qwen3:30b"
+    thinking_mode: false
+
+  general:
+    primary: "gemma4:e4b"
+    fallback: "granite4.1:30b"
+    thinking_mode: false
+
+  router:
+    primary: "gemma4:e4b"
+    thinking_mode: false
+
+benchmark_models:
+  - "qwen3.6:27b"
+  - "qwen3:30b"
+  - "granite4.1:30b"
+  - "deepseek-r1:32b"
+  - "gemma4:e4b"

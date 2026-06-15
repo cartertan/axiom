@@ -1,0 +1,31 @@
+{
+  "name": "Carter Tan",
+  "role": "Solutions Architect, AI Security Specialist",
+  "company": "Nexus",
+  "location": "Singapore",
+  "years_experience": 18,
+  "expertise": [
+    "PKI", "digital identity", "certificate lifecycle management",
+    "cybersecurity", "presales", "enterprise architecture",
+    "cloud infrastructure", "AI and automation"
+  ],
+  "communication_style": "direct, structured, strategic",
+  "preferred_tone": "professional but conversational — not stiff, not casual",
+  "preferred_format": "bullet points and clear sections",
+  "current_projects": ["presales-ai-platform", "axiom"],
+  "typical_customers": ["telcos", "government", "banking", "energy", "manufacturing"],
+  "customer_titles": ["CISOs", "CIOs", "enterprise architects", "security teams"],
+  "products": ["PKI solutions", "certificate management", "digital trust platforms"],
+  "goals": [
+    "AI Architect journey June-November 2026",
+    "Build portfolio of locally-run AI tools",
+    "Become a leader in AI-driven cybersecurity"
+  ],
+  "running": {
+    "current_target": "half marathon",
+    "club": "SGRC",
+    "approach": "data-driven, structured training"
+  },
+  "tools": ["Ollama", "Claude Code", "Python", "ChromaDB", "GitHub"],
+  "values": ["continuous improvement", "long-term thinking", "precision", "efficiency"]
+}
