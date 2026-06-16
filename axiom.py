@@ -6,12 +6,16 @@ import yaml
 from src.agents.email_agent import EmailAgent
 from src.agents.general_agent import GeneralAgent
 from src.agents.meeting_agent import MeetingAgent
+from src.agents.pki_agent import PKIAgent
+from src.agents.research_agent import ResearchAgent
+from src.agents.rfp_agent import RFPAgent
 from src.benchmark.logger import BenchmarkLogger
 from src.core.memory import AxiomMemory
 from src.core.ollama_client import OllamaClient, OllamaConnectionError
 from src.core.profile import ProfileLoader
 from src.core.router import TaskRouter
 from src.interface.cli import AxiomCLI
+from src.rag.retriever import PKIRetriever
 
 
 def load_config(path: str = "config/models.yaml") -> dict:
@@ -19,18 +23,26 @@ def load_config(path: str = "config/models.yaml") -> dict:
         return yaml.safe_load(f)
 
 
-def get_agent(task_type: str, config, profile, memory, client):
+def get_agent(task_type: str, config, profile, memory, client, pki_retriever):
     if task_type == "EMAIL_DRAFT":
         return EmailAgent(config, profile, memory, client)
     if task_type == "MEETING_SUMMARY":
         return MeetingAgent(config, profile, memory, client)
+    if task_type == "RFP_ANALYSIS":
+        return RFPAgent(config, profile, memory, client)
+    if task_type == "PKI_QA":
+        return PKIAgent(config, profile, memory, client, pki_retriever)
+    if task_type == "RESEARCH":
+        return ResearchAgent(config, profile, memory, client)
     return GeneralAgent(config, profile, memory, client)
 
 
-def run_single_task(user_input: str, config, profile, memory, client, router, benchmark, cli):
+def run_single_task(
+    user_input: str, config, profile, memory, client, router, benchmark, cli, pki_retriever
+):
     cli.print_thinking()
     task_type = router.classify(user_input)
-    agent = get_agent(task_type, config, profile, memory, client)
+    agent = get_agent(task_type, config, profile, memory, client, pki_retriever)
     model, _, _ = router.get_model_for_task(task_type)
 
     start = time.time()
@@ -84,7 +96,7 @@ def run_benchmark(task_arg: str, config, profile, memory, client, benchmark, cli
     cli.console.print(table)
 
 
-def interactive_mode(config, profile, memory, client, router, benchmark, cli):
+def interactive_mode(config, profile, memory, client, router, benchmark, cli, pki_retriever):
     cli.print_banner()
     cli.console.print("[dim]Type your task, or 'quit' to exit.[/dim]\n")
     while True:
@@ -95,7 +107,9 @@ def interactive_mode(config, profile, memory, client, router, benchmark, cli):
                 break
             if not user_input.strip():
                 continue
-            run_single_task(user_input, config, profile, memory, client, router, benchmark, cli)
+            run_single_task(
+                user_input, config, profile, memory, client, router, benchmark, cli, pki_retriever
+            )
         except KeyboardInterrupt:
             cli.console.print("\n[dim]Goodbye.[/dim]")
             break
@@ -111,6 +125,7 @@ def main():
         memory = AxiomMemory()
         router = TaskRouter(config)
         benchmark = BenchmarkLogger()
+        pki_retriever = PKIRetriever()
     except OllamaConnectionError as e:
         cli.print_error(f"{e}\nIs Ollama running? Try: ollama serve")
         sys.exit(1)
@@ -122,7 +137,7 @@ def main():
 
     try:
         if not args:
-            interactive_mode(config, profile, memory, client, router, benchmark, cli)
+            interactive_mode(config, profile, memory, client, router, benchmark, cli, pki_retriever)
 
         elif args[0] == "benchmark":
             task_arg = args[2] if len(args) >= 3 and args[1] == "--task" else "EMAIL_DRAFT"
@@ -131,7 +146,9 @@ def main():
         else:
             user_input = " ".join(args)
             cli.print_banner()
-            run_single_task(user_input, config, profile, memory, client, router, benchmark, cli)
+            run_single_task(
+                user_input, config, profile, memory, client, router, benchmark, cli, pki_retriever
+            )
 
     except OllamaConnectionError as e:
         cli.print_error(f"{e}\nIs Ollama running? Try: ollama serve")

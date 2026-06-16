@@ -9,12 +9,21 @@ class OllamaClient:
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url.rstrip("/")
 
-    def chat(self, model: str, messages: list, stream: bool = False) -> str:
-        """Send a chat request to Ollama and return the response text."""
+    def chat(
+        self, model: str, messages: list, stream: bool = False, think: bool = False
+    ) -> str:
+        """Send a chat request to Ollama and return the response text.
+        Set think=True to enable extended thinking on models that support it
+        (the model's reasoning is kept separate from the returned content)."""
         try:
             response = requests.post(
                 f"{self.base_url}/api/chat",
-                json={"model": model, "messages": messages, "stream": stream},
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "stream": stream,
+                    "think": think,
+                },
                 timeout=300,
             )
             response.raise_for_status()

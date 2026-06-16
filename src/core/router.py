@@ -11,9 +11,19 @@ VALID_TASK_TYPES = {
 }
 
 _SYSTEM_PROMPT = (
-    "You are a task classifier. Respond with ONLY one of these exact strings — "
-    "no explanation, no punctuation, no extra text:\n"
-    "EMAIL_DRAFT, MEETING_SUMMARY, RFP_ANALYSIS, PKI_QA, RESEARCH, GENERAL, BENCHMARK"
+    "You are a task classifier. Classify the user's task into exactly one category:\n\n"
+    "EMAIL_DRAFT — drafting an email or message\n"
+    "MEETING_SUMMARY — summarising meeting notes or a transcript\n"
+    "RFP_ANALYSIS — analysing an RFP/RFI/tender document or requirement\n"
+    "PKI_QA — any question about PKI, certificates, CAs, OCSP, CRLs, HSMs, TLS/SSL, "
+    "encryption, or post-quantum cryptography — including 'what is', 'explain', or "
+    "'how does X work' questions on these topics\n"
+    "RESEARCH — open-ended research on a market, vendor landscape, or technology trend "
+    "not specifically about PKI/certificates\n"
+    "GENERAL — anything else\n"
+    "BENCHMARK — explicit benchmark requests\n\n"
+    "Respond with ONLY the matching category string — no explanation, no punctuation, "
+    "no extra text."
 )
 
 

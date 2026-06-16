@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXIOM</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-name">AXIOM</span>
+      <span class="brand-tagline">The reasoning behind every decision.</span>
+    </div>
+  </header>
+
+  <main class="chat" id="chat">
+    <div class="empty-state" id="empty-state">
+      Ask AXIOM about an RFP, a PKI question, a meeting summary, an email draft, or anything else.
+    </div>
+  </main>
+
+  <div class="typing-indicator hidden" id="typing-indicator">
+    <span></span><span></span><span></span>
+  </div>
+
+  <footer class="composer">
+    <input type="file" id="file-input" accept="application/pdf" hidden>
+    <button class="icon-btn" id="upload-btn" title="Upload PDF">📎</button>
+    <textarea id="message-input" placeholder="Message AXIOM…" rows="1"></textarea>
+    <button class="send-btn" id="send-btn" title="Send">Send</button>
+  </footer>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

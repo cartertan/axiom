@@ -77,6 +77,28 @@ class AxiomMemory:
 
         return "\n".join(lines)
 
+    def get_recent_interactions(self, n: int = 20) -> list:
+        """Return the n most recent interactions, newest first."""
+        count = self._collection.count()
+        if count == 0:
+            return []
+
+        results = self._collection.get(include=["documents", "metadatas"])
+        docs = results.get("documents", [])
+        metas = results.get("metadatas", [])
+
+        interactions = [
+            {
+                "summary": doc,
+                "task_type": meta.get("task_type", ""),
+                "model_used": meta.get("model_used", ""),
+                "timestamp": meta.get("timestamp", ""),
+            }
+            for doc, meta in zip(docs, metas)
+        ]
+        interactions.sort(key=lambda i: i["timestamp"], reverse=True)
+        return interactions[:n]
+
     def clear_memory(self) -> None:
         """Delete and recreate the memory collection."""
         self._client.delete_collection("axiom_memory")
