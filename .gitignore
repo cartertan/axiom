@@ -8,3 +8,8 @@ data/
 .DS_Store
 venv/
 .venv/
+
+# Voice models (large, never commit)
+models/voxtral/
+*.wav
+/tmp/axiom_audio/

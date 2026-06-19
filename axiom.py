@@ -232,6 +232,12 @@ def main():
             else:
                 run_benchmark(task_arg, config, profile, memory, client, benchmark, cli)
 
+        elif args[0] == "voice":
+            from src.voice.voice_loop import VoiceLoop
+            cli.print_banner()
+            vl = VoiceLoop(config, profile, memory, client, router)
+            vl.run()
+
         elif args[0] == "task":
             from src.agents.task_agent import TaskAgent
             ta = TaskAgent(config, profile, memory, client)

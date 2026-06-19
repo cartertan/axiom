@@ -50,3 +50,19 @@
 - GLM-5.2 evaluated: 1.51TB model, requires 256GB+ RAM — not viable on 64GB M5 Pro. Documented as optional API fallback only.
 
 ---
+
+## Phase 4 — Voice Interface
+**Started:** 2026-06-19
+**Target:** v0.4.0
+
+### Session 1 — 2026-06-19
+- Speech-to-text via whisper.cpp (`src/voice/stt.py`): `SpeechToText` wraps the Metal-accelerated `whisper-cli` binary via subprocess. large-v3-turbo model gives ~100ms transcription latency; uses `--no-prints` flag and parses timestamp-prefixed output lines. `transcribe_file()` verified against JFK sample at 100% accuracy.
+- Push-to-talk recorder (`src/voice/recorder.py`): `PushToTalkRecorder` uses `sounddevice.InputStream` with a callback queue; ENTER-to-toggle is the reliable v1 trigger (hotkey libraries conflict with mic permissions on macOS). `save_wav()` writes float32 numpy buffer to 16kHz 16-bit WAV via stdlib `wave`.
+- Text-to-speech via Voxtral TTS (`src/voice/tts.py`): `TextToSpeech` loads `mlx-community/Voxtral-4B-TTS-2603-mlx-4bit` on first `speak()` call via `mlx_audio.tts.utils.load` — downloads and caches via HuggingFace Hub automatically (~2.5GB, one-time). Uses `generate_audio` with `stream=True, play=True` for streaming playback. Voice: `neutral_male`. Model lazy-loads to avoid startup cost.
+- Speech text cleaner (`src/voice/text_cleaner.py`): `clean_for_speech()` strips markdown fences, inline code, bold/italic, headers, bullets, URLs. Converts numbered lists to "First, Second..." spoken form. Expands common abbreviations. Caps at 1200 chars with a natural sentence boundary and a "full response shown above" note.
+- Voice loop (`src/voice/voice_loop.py`): `VoiceLoop` ties the full STT → router → agent → TTS pipeline. Prints transcript for confirmation, shows task route and latency, prints full text alongside audio so long PKI answers remain readable. Logs interactions to ChromaDB with metadata `source="voice"`.
+- `axiom voice` command wired into `axiom.py`: passes all initialized components (config/profile/memory/client/router) into VoiceLoop. Whisper setup errors surface with clear setup instructions; Voxtral downloads automatically on first use.
+- `.gitignore` extended: `models/voxtral/`, `*.wav`, `/tmp/axiom_audio/` — voice models are never committed.
+- `requirements.txt` updated: `sounddevice>=0.4.6`, `numpy>=1.26.0`, `mlx>=0.15.0`, `mlx-audio>=0.1.0`.
+
+---

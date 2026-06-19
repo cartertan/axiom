@@ -36,6 +36,15 @@ AXIOM is being built up toward a JARVIS-style assistant, one layer at a time:
 - **Web interface** — full chat UI in the browser, with PDF upload and colour-coded response badges
 - **PKI knowledge base** — Markdown knowledge files indexed into ChromaDB and retrieved via semantic search
 
+## Phase 4 Capabilities
+
+- **Voice interface** — `axiom voice` launches a push-to-talk loop: press ENTER to speak, ENTER again to stop
+- **Local STT** — whisper.cpp with Metal GPU acceleration, large-v3-turbo model (~100ms transcription, works with PKI vocabulary)
+- **Local TTS** — Voxtral TTS (MLX 4-bit), downloads and caches automatically on first run; starts speaking before the full response is generated (streaming)
+- **Speech text cleaning** — markdown, URLs, bullet points, and code fences stripped for natural spoken delivery; numbered lists converted to "First, Second..."
+- **Full loop** — transcript and full text always printed alongside audio, so you can read long technical answers
+- **Zero cloud** — voice never leaves the Mac (~$3/month in power vs $86+/month for cloud STT/TTS)
+
 ## Phase 3 Capabilities
 
 - **Multi-agent orchestration** — three selectable modes for quality-first results:
@@ -73,6 +82,28 @@ Pull all models:
 ollama pull qwen3.6:27b && ollama pull granite4.1:30b && ollama pull gemma4:e4b
 ollama pull deepseek-r1:32b && ollama pull qwen3:30b && ollama pull nomic-embed-text
 ```
+
+### Voice Prerequisites (Phase 4)
+
+whisper.cpp must be built locally with Metal support:
+
+```bash
+cd ~/AI-Projects
+git clone https://github.com/ggml-org/whisper.cpp
+cd whisper.cpp
+cmake -B build -DWHISPER_METAL=ON
+cmake --build build -j --config Release
+bash ./models/download-ggml-model.sh large-v3-turbo
+```
+
+Verify:
+```bash
+~/AI-Projects/whisper.cpp/build/bin/whisper-cli \
+  -m ~/AI-Projects/whisper.cpp/models/ggml-large-v3-turbo.bin \
+  -f ~/AI-Projects/whisper.cpp/samples/jfk.wav
+```
+
+Voxtral TTS (MLX) is downloaded automatically on first `axiom voice` run. macOS will prompt for microphone permission on first use — grant it in System Settings → Privacy & Security → Microphone.
 
 ---
 
@@ -128,6 +159,14 @@ Drafts the email, reads back to/subject/body, prompts for confirmation before se
 python3 axiom.py benchmark --task pki_qa   # interactive quality-rated benchmark
 python3 axiom.py benchmark                  # quick latency table (no rating prompt)
 ```
+
+### Voice interface
+```bash
+python3 axiom.py voice
+```
+Press ENTER to start speaking. AXIOM transcribes locally (whisper.cpp), routes the task, runs the appropriate agent, then speaks the answer back (Voxtral TTS). Press ENTER again to speak another query. Type `quit` to exit.
+
+**First run:** Voxtral downloads automatically (~2.5GB, cached at `~/.cache/huggingface/`). whisper.cpp must be built at `~/AI-Projects/whisper.cpp/` — see **Voice Prerequisites** below.
 
 ### Interactive mode
 ```bash
@@ -207,6 +246,12 @@ axiom/
 │   │   ├── logger.py           # CSV benchmark logger
 │   │   ├── runner.py           # Interactive quality-rated benchmark runner
 │   │   └── dashboard.py        # HTML dashboard generator
+│   ├── voice/
+│   │   ├── stt.py              # SpeechToText — wraps whisper.cpp via subprocess
+│   │   ├── recorder.py         # PushToTalkRecorder — ENTER-to-toggle mic capture
+│   │   ├── tts.py              # TextToSpeech — Voxtral TTS (MLX 4-bit), streaming
+│   │   ├── text_cleaner.py     # clean_for_speech() — strips markdown for TTS
+│   │   └── voice_loop.py       # VoiceLoop — full STT→agent→TTS conversational loop
 │   └── interface/
 │       ├── cli.py              # Rich terminal UI
 │       └── web/                # FastAPI app, templates, static assets
@@ -251,8 +296,9 @@ The dashboard shows chars/s by model/task, a latency/count table, and the recomm
 | **v0.1.0** | CLI assistant — routing, email, meetings, general Q&A, memory, benchmarks | ✅ Done |
 | **v0.2.0** | Personality layer, RFP/PKI/Research agents, PKI knowledge base + RAG, web UI | ✅ Done |
 | **v0.3.0** | Multi-agent orchestration, action layer (tasks/email/web research), benchmark dashboard | ✅ Done |
-| **v0.4.0** | Calendar awareness, scheduled tasks, proactive reminders | Planned |
-| **v0.5.0** | Broader document ingestion, Strava/health integration | Planned |
+| **v0.4.0** | Voice interface — local STT (whisper.cpp) + TTS (Voxtral MLX), push-to-talk loop | ✅ Done |
+| **v0.5.0** | Calendar awareness, scheduled tasks, proactive reminders | Planned |
+| **v0.6.0** | Broader document ingestion, Strava/health integration | Planned |
 
 ---
 
