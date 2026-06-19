@@ -2,9 +2,10 @@ generated_from: data/benchmarks/benchmark_results.csv
 note: Review and merge into config/models.yaml manually
 recommended_models_per_task:
   EMAIL_DRAFT: qwen3:30b
+  EMAIL_SEND: gemma4:e4b
   GENERAL: gemma4:e4b
   MEETING_SUMMARY: granite4.1:30b
-  PKI_QA: qwen3.6:27b
+  PKI_QA: gemma4:e4b
   RESEARCH: deepseek-r1:32b
   RFP_ANALYSIS: qwen3:30b
   email_draft: qwen3.6:27b
