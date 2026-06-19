@@ -36,6 +36,21 @@ AXIOM is being built up toward a JARVIS-style assistant, one layer at a time:
 - **Web interface** — full chat UI in the browser, with PDF upload and colour-coded response badges
 - **PKI knowledge base** — Markdown knowledge files indexed into ChromaDB and retrieved via semantic search
 
+## Phase 3 Capabilities
+
+- **Multi-agent orchestration** — three selectable modes for quality-first results:
+  - **Ensemble** — sends the same prompt to multiple models sequentially, then a synthesiser combines them into the best answer
+  - **Pipeline** — models refine each other's output in stages: draft → refine → polish
+  - **Debate** — models answer independently, critique each other, then a judge selects/synthesises the best final answer
+- **Task management** — natural-language task add/list/done, stored in local SQLite (`data/tasks.db`): `axiom task add "…"`, `axiom task list`
+- **Live web research** — DuckDuckGo search + page fetch + synthesis with source citations (`axiom research "…"`); search layer is pluggable (Brave/SearXNG configurable via `web_search.backend`)
+- **Email sending** — drafts via EmailAgent, reads back to/subject/body, then sends via macOS Mail using AppleScript — no SMTP credentials, no cloud
+- **Safety gate** — every external action (email send, future calendar events) passes through `SafetyGate.confirm_action()`, which prompts for explicit `yes` before proceeding
+- **Benchmark runner** — interactive quality-rated benchmark (`axiom benchmark --task pki_qa`): rate each response 1-5, composite score = quality×0.6 + speed×0.25 + efficiency×0.15
+- **Benchmark dashboard** — HTML dashboard with Chart.js bar charts, latency/speed/quality table, and a `config/models_recommended.yaml` for Carter to review before merging into `models.yaml`
+- **Web UI mode selector** — dropdown in the browser chat to select Single / Ensemble / Pipeline / Debate; multi-model results show expandable per-model responses
+- **GLM-5.2 evaluation** — assessed as not viable locally (1.51TB, requires 256GB+ RAM); documented as optional API fallback only
+
 ---
 
 ## Requirements
@@ -81,11 +96,37 @@ python3 axiom.py "summarise these meeting notes: [paste notes here]"
 python3 axiom.py "what is OCSP stapling and how do I explain it to a CIO?"
 ```
 
+### Orchestration modes
+```bash
+python3 axiom.py "analyse this RFP requirement: must support ACME and HSM" --mode ensemble
+python3 axiom.py "write a proposal opening for a telco PKI refresh" --mode pipeline
+python3 axiom.py "OCSP vs CRL for a high-traffic bank — which and why" --mode debate
+```
+RFP_ANALYSIS and RESEARCH tasks auto-default to ensemble if no `--mode` is given.
+
+### Task management
+```bash
+python3 axiom.py task add "Follow up with Singtel security team by Friday"
+python3 axiom.py task list
+python3 axiom.py task done "Singtel"
+```
+
+### Live web research
+```bash
+python3 axiom.py research "Thales PKI telco strategy 2026"
+```
+Searches DuckDuckGo, fetches top pages, returns a cited synthesis.
+
+### Email sending
+```bash
+python3 axiom.py "send a meeting confirmation to john@example.com"
+```
+Drafts the email, reads back to/subject/body, prompts for confirmation before sending via macOS Mail.
+
 ### Benchmark mode
 ```bash
-python3 axiom.py benchmark --task email_draft
-python3 axiom.py benchmark --task meeting_summary
-python3 axiom.py benchmark --task general
+python3 axiom.py benchmark --task pki_qa   # interactive quality-rated benchmark
+python3 axiom.py benchmark                  # quick latency table (no rating prompt)
 ```
 
 ### Interactive mode
@@ -130,34 +171,48 @@ axiom/
 ├── axiom.py                    # CLI entry point
 ├── server.py                   # Web entry point
 ├── config/
-│   ├── models.yaml              # Model assignments per task
+│   ├── models.yaml              # Model assignments + orchestration config
+│   ├── models_recommended.yaml  # Benchmark output — review before merging
 │   └── personality.yaml         # AXIOM identity, character, rules
 ├── memory/carter_profile.json  # Carter DNA — injected into every prompt
 ├── knowledge/pki/              # PKI reference Markdown, indexed for RAG
+├── reports/
+│   └── benchmark_dashboard.html # Generated benchmark dashboard
 ├── src/
 │   ├── core/
 │   │   ├── ollama_client.py    # All Ollama API calls
+│   │   ├── orchestrator.py     # Multi-model orchestration (ensemble/pipeline/debate)
 │   │   ├── profile.py          # Profile loader
 │   │   ├── personality.py      # AXIOM personality layer
 │   │   ├── memory.py           # ChromaDB read/write
 │   │   └── router.py           # Intent classification
+│   ├── actions/
+│   │   ├── safety_gate.py      # Confirm gate for all external actions
+│   │   └── web_search.py       # DuckDuckGo search + page fetch (pluggable backend)
 │   ├── agents/
 │   │   ├── base_agent.py       # Abstract base class
 │   │   ├── email_agent.py      # Email drafting
+│   │   ├── email_sender_agent.py  # Email send via macOS Mail + safety gate
 │   │   ├── meeting_agent.py    # Meeting summaries
 │   │   ├── general_agent.py    # General Q&A
 │   │   ├── rfp_agent.py        # RFP analysis
 │   │   ├── pki_agent.py        # PKI Q&A (RAG)
-│   │   └── research_agent.py   # Structured research
+│   │   ├── research_agent.py   # Model-knowledge research
+│   │   ├── research_web_agent.py  # Live web research with citations
+│   │   └── task_agent.py       # Task management (SQLite)
 │   ├── rag/
 │   │   ├── indexer.py          # PKI knowledge base indexer
 │   │   └── retriever.py        # PKI semantic retrieval
 │   ├── benchmark/
-│   │   └── logger.py           # CSV benchmark logger
+│   │   ├── logger.py           # CSV benchmark logger
+│   │   ├── runner.py           # Interactive quality-rated benchmark runner
+│   │   └── dashboard.py        # HTML dashboard generator
 │   └── interface/
 │       ├── cli.py              # Rich terminal UI
 │       └── web/                # FastAPI app, templates, static assets
-└── data/benchmarks/            # benchmark_results.csv (gitignored)
+└── data/
+    ├── benchmarks/             # benchmark_results.csv (gitignored)
+    └── tasks.db                # Task management SQLite DB (gitignored)
 ```
 
 ---
@@ -176,15 +231,28 @@ axiom/
 
 ---
 
+## Benchmark Dashboard
+
+After running `axiom benchmark --task pki_qa` (or any task), generate the HTML dashboard:
+
+```bash
+python3 -c "from src.benchmark.dashboard import generate_dashboard; generate_dashboard()"
+open reports/benchmark_dashboard.html
+```
+
+The dashboard shows chars/s by model/task, a latency/count table, and the recommended model per task. It also writes `config/models_recommended.yaml` — review and merge into `models.yaml` manually.
+
+---
+
 ## Roadmap
 
 | Phase | Focus | Status |
 |---|---|---|
 | **v0.1.0** | CLI assistant — routing, email, meetings, general Q&A, memory, benchmarks | ✅ Done |
 | **v0.2.0** | Personality layer, RFP/PKI/Research agents, PKI knowledge base + RAG, web UI | ✅ Done |
-| **v0.3.0** | Automatic model selection via benchmark feedback loop | Planned |
-| **v0.4.0** | Web search agent + broader document ingestion (tenders, security specs) | Planned |
-| **v0.5.0** | Calendar/email awareness, scheduled tasks, Strava integration | Planned |
+| **v0.3.0** | Multi-agent orchestration, action layer (tasks/email/web research), benchmark dashboard | ✅ Done |
+| **v0.4.0** | Calendar awareness, scheduled tasks, proactive reminders | Planned |
+| **v0.5.0** | Broader document ingestion, Strava/health integration | Planned |
 
 ---
 

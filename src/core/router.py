@@ -2,6 +2,7 @@ from src.core.ollama_client import OllamaClient
 
 VALID_TASK_TYPES = {
     "EMAIL_DRAFT",
+    "EMAIL_SEND",
     "MEETING_SUMMARY",
     "RFP_ANALYSIS",
     "PKI_QA",
@@ -12,7 +13,8 @@ VALID_TASK_TYPES = {
 
 _SYSTEM_PROMPT = (
     "You are a task classifier. Classify the user's task into exactly one category:\n\n"
-    "EMAIL_DRAFT — drafting an email or message\n"
+    "EMAIL_SEND — explicitly sending an email to someone (e.g. 'send an email to', 'email John at')\n"
+    "EMAIL_DRAFT — drafting or composing an email or message without explicitly sending it\n"
     "MEETING_SUMMARY — summarising meeting notes or a transcript\n"
     "RFP_ANALYSIS — analysing an RFP/RFI/tender document or requirement\n"
     "PKI_QA — any question about PKI, certificates, CAs, OCSP, CRLs, HSMs, TLS/SSL, "

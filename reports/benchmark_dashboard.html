@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AXIOM Benchmark Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; background: #f9f9f9; color: #222; }
+  h1 { color: #2c3e50; }
+  h2 { color: #34495e; margin-top: 2rem; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+  th { background: #2c3e50; color: #fff; }
+  tr:nth-child(even) { background: #f2f2f2; }
+  canvas { max-width: 900px; background: #fff; padding: 1rem; border-radius: 8px; }
+  .summary { background: #fff; padding: 1rem; border-radius: 8px; max-width: 600px; }
+</style>
+</head>
+<body>
+<h1>AXIOM Benchmark Dashboard</h1>
+<p>Generated from <code>data/benchmarks/benchmark_results.csv</code> &mdash; 41 runs across 5 models.</p>
+
+<h2>Chars/s by Task &amp; Model</h2>
+<canvas id="chart" height="120"></canvas>
+<script>
+new Chart(document.getElementById('chart'), {
+  type: 'bar',
+  data: {
+    labels: ["deepseek-r1:32b", "gemma4:e4b", "granite4.1:30b", "qwen3.6:27b", "qwen3:30b"],
+    datasets: [{"label": "EMAIL_DRAFT", "data": [28.5, 219.9, 72.0, 24.8, 235.2], "backgroundColor": "#4e79a7"}, {"label": "EMAIL_SEND", "data": [0, 26.4, 0, 0, 0], "backgroundColor": "#f28e2b"}, {"label": "GENERAL", "data": [0, 174.2, 0, 0, 0], "backgroundColor": "#e15759"}, {"label": "MEETING_SUMMARY", "data": [0, 0, 32.0, 0, 0], "backgroundColor": "#76b7b2"}, {"label": "PKI_QA", "data": [21.9, 277.7, 58.6, 57.4, 264.2], "backgroundColor": "#59a14f"}, {"label": "RESEARCH", "data": [28.9, 0, 0, 0, 0], "backgroundColor": "#edc948"}, {"label": "RFP_ANALYSIS", "data": [16.1, 0, 0, 66.3, 196.4], "backgroundColor": "#b07aa1"}, {"label": "email_draft", "data": [0, 0, 0, 64.5, 0], "backgroundColor": "#4e79a7"}, {"label": "meeting_summary", "data": [0, 0, 74.1, 0, 0], "backgroundColor": "#f28e2b"}]
+  },
+  options: {
+    plugins: { legend: { position: 'top' } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'Chars / second (higher = faster)' } } }
+  }
+});
+</script>
+
+<h2>Latency / Speed / Count per Model × Task</h2>
+<table>
+  <thead><tr><th>Model</th><th>Task</th><th>Avg Latency</th><th>Avg Chars/s</th><th>Runs</th></tr></thead>
+  <tbody><tr><td>deepseek-r1:32b</td><td>EMAIL_DRAFT</td><td>46.77s</td><td>28.5</td><td>2</td></tr>
+<tr><td>deepseek-r1:32b</td><td>PKI_QA</td><td>90.36s</td><td>21.9</td><td>3</td></tr>
+<tr><td>deepseek-r1:32b</td><td>RESEARCH</td><td>90.57s</td><td>28.9</td><td>1</td></tr>
+<tr><td>deepseek-r1:32b</td><td>RFP_ANALYSIS</td><td>55.71s</td><td>16.1</td><td>1</td></tr>
+<tr><td>gemma4:e4b</td><td>EMAIL_DRAFT</td><td>21.93s</td><td>219.9</td><td>2</td></tr>
+<tr><td>gemma4:e4b</td><td>EMAIL_SEND</td><td>14.99s</td><td>26.4</td><td>1</td></tr>
+<tr><td>gemma4:e4b</td><td>GENERAL</td><td>3.15s</td><td>174.2</td><td>2</td></tr>
+<tr><td>gemma4:e4b</td><td>PKI_QA</td><td>25.17s</td><td>277.7</td><td>1</td></tr>
+<tr><td>granite4.1:30b</td><td>EMAIL_DRAFT</td><td>42.07s</td><td>72.0</td><td>3</td></tr>
+<tr><td>granite4.1:30b</td><td>MEETING_SUMMARY</td><td>15.74s</td><td>32.0</td><td>1</td></tr>
+<tr><td>granite4.1:30b</td><td>PKI_QA</td><td>118.22s</td><td>58.6</td><td>1</td></tr>
+<tr><td>granite4.1:30b</td><td>meeting_summary</td><td>8.1s</td><td>74.1</td><td>1</td></tr>
+<tr><td>qwen3.6:27b</td><td>EMAIL_DRAFT</td><td>66.09s</td><td>24.8</td><td>7</td></tr>
+<tr><td>qwen3.6:27b</td><td>PKI_QA</td><td>70.34s</td><td>57.4</td><td>4</td></tr>
+<tr><td>qwen3.6:27b</td><td>RFP_ANALYSIS</td><td>108.17s</td><td>66.3</td><td>1</td></tr>
+<tr><td>qwen3.6:27b</td><td>email_draft</td><td>12.4s</td><td>64.5</td><td>1</td></tr>
+<tr><td>qwen3:30b</td><td>EMAIL_DRAFT</td><td>19.86s</td><td>235.2</td><td>3</td></tr>
+<tr><td>qwen3:30b</td><td>PKI_QA</td><td>34.26s</td><td>264.2</td><td>3</td></tr>
+<tr><td>qwen3:30b</td><td>RFP_ANALYSIS</td><td>31.02s</td><td>196.4</td><td>3</td></tr>
+</tbody>
+</table>
+
+<h2>Recommended Model per Task</h2>
+<div class="summary">
+  <table>
+    <thead><tr><th>Task Type</th><th>Recommended Model</th></tr></thead>
+    <tbody><tr><td>EMAIL_DRAFT</td><td><strong>qwen3:30b</strong></td></tr>
+<tr><td>EMAIL_SEND</td><td><strong>gemma4:e4b</strong></td></tr>
+<tr><td>GENERAL</td><td><strong>gemma4:e4b</strong></td></tr>
+<tr><td>MEETING_SUMMARY</td><td><strong>granite4.1:30b</strong></td></tr>
+<tr><td>PKI_QA</td><td><strong>gemma4:e4b</strong></td></tr>
+<tr><td>RESEARCH</td><td><strong>deepseek-r1:32b</strong></td></tr>
+<tr><td>RFP_ANALYSIS</td><td><strong>qwen3:30b</strong></td></tr>
+<tr><td>email_draft</td><td><strong>qwen3.6:27b</strong></td></tr>
+<tr><td>meeting_summary</td><td><strong>granite4.1:30b</strong></td></tr>
+</tbody>
+  </table>
+  <p><em>Based on lowest average latency. Quality ratings require interactive benchmark run.</em></p>
+</div>
+</body>
+</html>
