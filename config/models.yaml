@@ -44,3 +44,16 @@ benchmark_models:
   - "granite4.1:30b"
   - "deepseek-r1:32b"
   - "gemma4:e4b"
+
+orchestration:
+  ensemble:
+    default_models: ["qwen3.6:27b", "qwen3:30b", "deepseek-r1:32b"]
+    synthesiser: "qwen3:30b"
+  pipeline:
+    default_sequence: ["qwen3.6:27b", "granite4.1:30b", "qwen3:30b"]
+  debate:
+    default_models: ["qwen3:30b", "deepseek-r1:32b"]
+    judge: "qwen3.6:27b"
+
+  # Task types that default to multi-model when no --mode flag is given
+  multi_model_tasks: ["RFP_ANALYSIS", "RESEARCH"]

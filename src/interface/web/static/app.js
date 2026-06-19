@@ -5,13 +5,14 @@ const sendBtn = document.getElementById("send-btn");
 const uploadBtn = document.getElementById("upload-btn");
 const fileInput = document.getElementById("file-input");
 const typingIndicator = document.getElementById("typing-indicator");
+const modeSelect = document.getElementById("mode-select");
 
 function scrollToBottom() {
   chat.scrollTop = chat.scrollHeight;
 }
 
 function addUserRow(text) {
-  emptyState.remove();
+  if (emptyState && emptyState.parentNode) emptyState.remove();
   const row = document.createElement("div");
   row.className = "row user";
   row.innerHTML = `<div class="bubble"></div>`;
@@ -20,17 +21,16 @@ function addUserRow(text) {
   scrollToBottom();
 }
 
-function addAxiomRow({ response, task_type, model, latency, isError }) {
+function addAxiomRow({ response, task_type, model, latency, isError, individual_responses, stages, round1 }) {
   const row = document.createElement("div");
   row.className = "row axiom";
 
-  const badgeClass = (task_type || "general").toLowerCase();
   const badgeRow = document.createElement("div");
   badgeRow.className = "badge-row";
 
   if (!isError) {
     const badge = document.createElement("span");
-    badge.className = `badge ${badgeClass}`;
+    badge.className = `badge ${(task_type || "general").toLowerCase()}`;
     badge.textContent = task_type;
     badgeRow.appendChild(badge);
 
@@ -46,6 +46,28 @@ function addAxiomRow({ response, task_type, model, latency, isError }) {
 
   row.appendChild(badgeRow);
   row.appendChild(bubble);
+
+  // Expandable individual model responses for multi-model modes
+  const details = individual_responses || stages || round1;
+  if (details && details.length > 0) {
+    const disclosure = document.createElement("details");
+    disclosure.className = "model-details";
+    const summary = document.createElement("summary");
+    summary.textContent = `Show individual model responses (${details.length})`;
+    disclosure.appendChild(summary);
+
+    details.forEach((item) => {
+      const label = item.model || `${item.stage} / ${item.model}`;
+      const text = item.response || "";
+      const div = document.createElement("div");
+      div.className = "model-response";
+      div.innerHTML = `<strong>${label}</strong><p>${text.slice(0, 800)}${text.length > 800 ? "…" : ""}</p>`;
+      disclosure.appendChild(div);
+    });
+
+    row.appendChild(disclosure);
+  }
+
   chat.appendChild(row);
   scrollToBottom();
 }
@@ -60,11 +82,13 @@ async function sendMessage() {
   sendBtn.disabled = true;
   typingIndicator.classList.remove("hidden");
 
+  const mode = modeSelect ? modeSelect.value : "single";
+
   try {
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: text, mode }),
     });
     const data = await res.json();
 
