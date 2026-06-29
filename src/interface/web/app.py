@@ -1,3 +1,6 @@
+import os
+import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional
@@ -5,12 +8,13 @@ from typing import Optional
 import pdfplumber
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from axiom import get_agent, load_config
+from src.agents.council_orchestrator import run_council
 from src.benchmark.logger import BenchmarkLogger
 from src.core.memory import AxiomMemory
 from src.core.ollama_client import OllamaClient, OllamaConnectionError
@@ -18,6 +22,8 @@ from src.core.orchestrator import Orchestrator
 from src.core.profile import ProfileLoader
 from src.core.router import TaskRouter
 from src.rag.retriever import PKIRetriever
+from src.voice.stt import SpeechToText, SpeechToTextError
+from src.voice.tts import TextToSpeech, TextToSpeechError
 
 _WEB_DIR = Path(__file__).parent
 
@@ -46,6 +52,17 @@ orchestrator = Orchestrator(client, benchmark_logger)
 class ChatRequest(BaseModel):
     message: str
     mode: Optional[str] = "single"
+
+
+class CouncilRequest(BaseModel):
+    question: str
+    quick: bool = False
+    save_vault: bool = False
+    force_complex: bool = False
+
+
+class SynthesizeRequest(BaseModel):
+    text: str
 
 
 @app.get("/")
@@ -138,3 +155,105 @@ def history(n: int = 20):
         return {"interactions": memory.get_recent_interactions(n)}
     except OllamaConnectionError as e:
         return JSONResponse(status_code=503, content={"error": str(e)})
+
+
+@app.post("/council")
+def council(req: CouncilRequest):
+    if not req.question.strip():
+        return JSONResponse(status_code=400, content={"error": "question cannot be empty"})
+    start = time.time()
+    try:
+        result = run_council(
+            question=req.question,
+            quick=req.quick,
+            save_vault=req.save_vault,
+            force_complex=req.force_complex,
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+    duration = round(time.time() - start, 2)
+    roles = [
+        {
+            "role": r["role"],
+            "model": r["model"],
+            "content": r["content"],
+            "where_run": r.get("where_run", "local"),
+        }
+        for r in result["responses"]
+    ]
+    reviewer = result["reviewer"]
+    return {
+        "question": result["question"],
+        "roles": roles,
+        "reviewer": reviewer["content"],
+        "vault_path": result.get("saved_to"),
+        "duration_seconds": duration,
+    }
+
+
+@app.post("/voice/transcribe")
+def voice_transcribe(file: UploadFile = File(...)):
+    try:
+        stt = SpeechToText(config)
+    except SpeechToTextError as e:
+        return JSONResponse(status_code=503, content={"error": str(e)})
+
+    suffix = Path(file.filename or "audio.webm").suffix or ".webm"
+    fd_in, tmp_in = tempfile.mkstemp(suffix=suffix)
+    os.close(fd_in)
+    try:
+        with open(tmp_in, "wb") as f:
+            f.write(file.file.read())
+
+        # whisper-cli needs 16 kHz mono WAV; convert non-WAV uploads via ffmpeg
+        if suffix.lower() != ".wav":
+            fd_wav, tmp_wav = tempfile.mkstemp(suffix=".wav")
+            os.close(fd_wav)
+            try:
+                subprocess.run(
+                    ["ffmpeg", "-y", "-i", tmp_in, "-ar", "16000", "-ac", "1", tmp_wav],
+                    check=True,
+                    capture_output=True,
+                )
+                text = stt.transcribe_file(tmp_wav)
+            except subprocess.CalledProcessError:
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Audio conversion failed. Is ffmpeg installed? brew install ffmpeg"},
+                )
+            finally:
+                if os.path.exists(tmp_wav):
+                    os.unlink(tmp_wav)
+        else:
+            text = stt.transcribe_file(tmp_in)
+
+        return {"text": text}
+    except SpeechToTextError as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if os.path.exists(tmp_in):
+            os.unlink(tmp_in)
+
+
+@app.post("/voice/synthesize")
+def voice_synthesize(req: SynthesizeRequest):
+    if not req.text.strip():
+        return JSONResponse(status_code=400, content={"error": "text cannot be empty"})
+    try:
+        tts = TextToSpeech(config)
+    except TextToSpeechError as e:
+        return JSONResponse(status_code=503, content={"error": str(e)})
+
+    fd, tmp_path = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    try:
+        tts.save_audio(req.text, tmp_path)
+        with open(tmp_path, "rb") as f:
+            audio_bytes = f.read()
+        return Response(content=audio_bytes, media_type="audio/wav")
+    except TextToSpeechError as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
