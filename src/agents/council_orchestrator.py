@@ -88,11 +88,10 @@ def run_council(question: str, quick: bool = False, save_vault: bool = False, fo
             _build_reviewer_prompt(question, responses, vault_context),
             system=rev_system,
         )
-        used_model = "glm-5.2" if cloud_result["where_run"] == "cloud:glm-5.2" else cloud_result.get("where_run", "unknown")
         rev = {
             "role": "Reviewer",
-            "model": used_model,
-            "content": cloud_result["content"] or cloud_result.get("error", "No response"),
+            "model": "glm-5.2",
+            "content": cloud_result["content"],
             "where_run": cloud_result["where_run"],
             "error": not cloud_result["success"],
         }
