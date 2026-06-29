@@ -11,13 +11,15 @@ from src.agents.council.roles import (
     reviewer_agent,
     security_agent,
 )
+from src.core.cloud_client import call_with_fallback
+from src.core.token_optimizer import should_use_cloud
 from src.integrations.obsidian import get_vault_context, write_note
 
 ROLE_ORDER_FULL = ["Architect", "Security", "Devil's Advocate", "Reviewer"]
 ROLE_ORDER_QUICK = ["Architect", "Reviewer"]
 
 
-def run_council(question: str, quick: bool = False, save_vault: bool = False) -> dict:
+def run_council(question: str, quick: bool = False, save_vault: bool = False, force_complex: bool = False) -> dict:
     """
     Run the multi-agent council deliberation.
 
@@ -38,6 +40,10 @@ def run_council(question: str, quick: bool = False, save_vault: bool = False) ->
     vault_context = get_vault_context(question)
     if vault_context:
         print("[COUNCIL] Vault context loaded\n")
+
+    use_cloud, complexity_score = should_use_cloud(question, force=force_complex)
+    routing_label = "cloud:glm-5.2" if use_cloud else "local"
+    print(f"[TOKEN OPTIMIZER] complexity score: {complexity_score} | routing: {routing_label}\n")
 
     responses = []
 
@@ -70,8 +76,29 @@ def run_council(question: str, quick: bool = False, save_vault: bool = False) ->
         _print_step_status(da)
 
     # Step 5 — Reviewer (always runs, sees all prior responses)
-    print(f"[COUNCIL] Running Reviewer (qwen3:30b)...")
-    rev = reviewer_agent(question, all_responses=responses, vault_context=vault_context)
+    if use_cloud:
+        print("[COUNCIL] Running Reviewer (glm-5.2 via OpenRouter)...")
+        rev_system = (
+            "You are the Lead Reviewer synthesising a multi-agent council deliberation. "
+            "Produce a final executive recommendation with: 1) Executive Summary, "
+            "2) Recommended Decision, 3) Key Conditions, 4) Risks Accepted, "
+            "5) Immediate Next Actions, 6) Confidence Level."
+        )
+        cloud_result = call_with_fallback(
+            _build_reviewer_prompt(question, responses, vault_context),
+            system=rev_system,
+        )
+        used_model = "glm-5.2" if cloud_result["where_run"] == "cloud:glm-5.2" else cloud_result.get("where_run", "unknown")
+        rev = {
+            "role": "Reviewer",
+            "model": used_model,
+            "content": cloud_result["content"] or cloud_result.get("error", "No response"),
+            "where_run": cloud_result["where_run"],
+            "error": not cloud_result["success"],
+        }
+    else:
+        print(f"[COUNCIL] Running Reviewer (qwen3:30b)...")
+        rev = reviewer_agent(question, all_responses=responses, vault_context=vault_context)
     responses.append(rev)
     _print_step_status(rev)
 
@@ -140,6 +167,17 @@ def print_council_output(result: dict) -> None:
 
 
 # ── internal helpers ──────────────────────────────────────────────────────────
+
+def _build_reviewer_prompt(question: str, responses: list, vault_context: str) -> str:
+    parts = []
+    if vault_context:
+        parts.append(vault_context)
+    for resp in responses:
+        if not resp.get("error") and resp.get("content"):
+            parts.append(f"[{resp['role']} — {resp['model']}]\n{resp['content']}")
+    parts.append(f"Original Question: {question}")
+    return "\n\n".join(parts)
+
 
 def _print_step_status(resp: dict) -> None:
     status = "ERROR" if resp["error"] else "done"
