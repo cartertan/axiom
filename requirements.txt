@@ -16,3 +16,4 @@ jinja2>=3.1.0
 ddgs>=9.0.0
 sqlite-utils>=3.35
 beautifulsoup4>=4.12.0
+openai

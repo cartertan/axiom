@@ -13,3 +13,5 @@ venv/
 models/voxtral/
 *.wav
 /tmp/axiom_audio/
+test_openrouter.py
+test_openrouter.py
