@@ -12,6 +12,7 @@
   --c-research: #c97cf4;
   --c-rfp_analysis: #f06262;
   --c-general: #8a8f98;
+  --c-council: #a78bfa;
 }
 
 * { box-sizing: border-box; }
@@ -124,6 +125,7 @@ html, body {
 .badge.research { background: var(--c-research); }
 .badge.rfp_analysis { background: var(--c-rfp_analysis); }
 .badge.general { background: var(--c-general); }
+.badge.council { background: var(--c-council); }
 
 .meta {
   color: var(--text-dim);
@@ -221,4 +223,118 @@ html, body {
 
 .error-text {
   color: var(--c-rfp_analysis);
+}
+
+/* ── existing multi-model details (styles were missing from original) ── */
+
+.model-details {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  max-width: 100%;
+}
+
+.model-details summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.model-response {
+  padding: 8px 12px;
+  margin-top: 6px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.model-response p {
+  margin: 4px 0 0;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* ── council controls in composer ── */
+
+.council-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.council-controls.hidden {
+  display: none;
+}
+
+.council-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.council-controls input[type="checkbox"] {
+  accent-color: var(--c-council);
+  cursor: pointer;
+}
+
+/* ── council deliberation cards ── */
+
+.council-card {
+  padding: 10px 12px;
+  margin-top: 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  border-left: 3px solid var(--border);
+  font-size: 13px;
+}
+
+.council-card.role-architect       { border-left-color: #4d8dff; }
+.council-card.role-security        { border-left-color: #f06262; }
+.council-card.role-devil-s-advocate { border-left-color: #e3b341; }
+.council-card.role-reviewer        { border-left-color: #3ecf8e; }
+
+.council-card p {
+  margin: 6px 0 0;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.role-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.where-pill {
+  font-size: 10px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.vault-badge {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #3ecf8e;
+}
+
+/* ── mic button recording state ── */
+
+#mic-btn.recording {
+  border-color: #f06262;
+  color: #f06262;
+  animation: mic-pulse 1s infinite ease-in-out;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
 }
